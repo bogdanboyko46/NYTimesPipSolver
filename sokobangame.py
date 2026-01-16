@@ -23,13 +23,14 @@ def solve_with_random():
     blocksComp = 0
     player = [0, 1]
     grid = [['e', 'e', 'e'], ['e', 'b', 'e'], ['e', 'e', 'h']]
+    possible = is_possible()
     while blocksComp != blocks:
         blocksComp = 0
         blocks = 1
         grid = [['e', 'e', 'e'], ['e', 'b', 'e'], ['e', 'e', 'h']]
         player = [0, 1]
         # Solves with random moves
-        for i in range(1,80):
+        for i in range(1,30):
             randnum = random.randint(1,4)
             match randnum:
                 case 1:
@@ -42,8 +43,57 @@ def solve_with_random():
                     move_up()
             if blocksComp == blocks:
                 break
+            possible = is_possible()
+            if not possible:
+                print("Not possible")
+                print_grid()
+                print("============")
+                break
     print_grid()
     print(player)
+
+# Checks if a grid is possible (more like checking if a certain position is impossible)
+# Can be optimised probably
+def is_possible() -> bool:
+    global grid, player, blocksComp
+    n = len(grid)
+    m = len(grid[0])
+    if grid[0][0] == 'b' or grid[n-1][0] == 'b' or grid[n-1][m-1] == 'b' or grid[0][m-1] == 'b':
+        return False
+
+    hole = block = 0
+    for i in range(0,n):
+        if grid[i][0] == 'b':
+            block += 1
+        if grid[i][0] == 'h':
+            hole += 1
+    if block > hole:
+        return False
+    hole = block = 0
+    for i in range(0,n):
+        if grid[i][m-1] == 'b':
+            block += 1
+        if grid[i][m-1] == 'h':
+            hole += 1
+    if block > hole:
+        return False
+    hole = block = 0
+    for i in range(0,m):
+        if grid[0][i] == 'b':
+            block += 1
+        if grid[0][i] == 'h':
+            hole += 1
+    if block > hole:
+        return False
+    hole = block = 0
+    for i in range(0,m):
+        if grid[n-1][i] == 'b':
+            block += 1
+        if grid[n-1][i] == 'h':
+            hole += 1
+    if block > hole:
+        return False
+    return True
 
 
 def move_up() -> bool:
