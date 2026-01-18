@@ -1,3 +1,5 @@
+import time
+
 import pygame              # Game library for graphics, input, and timing
 import random              # Used to randomly place food
 from enum import Enum      # Used for direction enum
@@ -27,6 +29,7 @@ BLUE = (0, 0, 255)
 GREEN = (0, 255, 0)
 BLACK = (0, 0, 0)
 CYAN = (0, 255, 255)
+PINK = (255, 0, 255)
 
 # Size of each player block
 BLOCK_SIZE = 80
@@ -44,17 +47,19 @@ class Sokoban:
         # Initial player position (center of screen)
         self.player = Point(0,0)
 
-        block1 = Point(BLOCK_SIZE, BLOCK_SIZE)
-        block2 = Point(BLOCK_SIZE * 4, BLOCK_SIZE)
         self.blocks = set()
-        self.blocks.add(block1)
-        self.blocks.add(block2)
+        while len(self.blocks) < 3:
+            x = random.randint(1, 7) * BLOCK_SIZE
+            y = random.randint(1, 7) * BLOCK_SIZE
+            if not Point(x, y) in self.blocks and Point(x, y) != self.player:
+                self.blocks.add(Point(x, y))
 
-        hole1 = Point(240, 400)
-        hole2 = Point(320, w- BLOCK_SIZE * 4)
         self.holes = set()
-        self.holes.add(hole1)
-        self.holes.add(hole2)
+        while len(self.holes) < 3:
+            x = random.randint(0, 8) * BLOCK_SIZE
+            y = random.randint(0, 8) * BLOCK_SIZE
+            if not Point(x, y) in self.holes and not Point(x, y) in self.blocks and Point(x, y) != self.player:
+                self.holes.add(Point(x, y))
 
 
 
@@ -74,11 +79,15 @@ class Sokoban:
                     self._move(Direction.UP)
                 elif event.key == pygame.K_DOWN:
                     self._move(Direction.DOWN)
+                elif event.key == pygame.K_r:
+                    return True
 
-        # Update display and control speed
-        self._update_ui()
+        # Update display
+        return self._update_ui()
 
     def _update_ui(self):
+        num_holes = len(self.blocks)
+        num_comp = 0
         # Clear screen
         self.display.fill(BLACK)
 
@@ -93,6 +102,7 @@ class Sokoban:
             if h_pt in self.blocks:
                 pygame.draw.rect(self.display, GREEN,
                                  pygame.Rect(h_pt.x, h_pt.y, BLOCK_SIZE, BLOCK_SIZE))
+                num_comp += 1
             elif h_pt == p_pt:
                 pygame.draw.rect(self.display, CYAN,
                                  pygame.Rect(h_pt.x, h_pt.y, BLOCK_SIZE, BLOCK_SIZE))
@@ -101,9 +111,16 @@ class Sokoban:
                                  pygame.Rect(h_pt.x, h_pt.y, BLOCK_SIZE, BLOCK_SIZE))
 
 
-
+        if num_holes == num_comp:
+            text = font.render("Complete!", True, PINK)
+            self.display.blit(text, [self.w/2 - 100,self.w/2])
+            pygame.display.flip()
+            time.sleep(3)
+            return True
         # Update the screen
         pygame.display.flip()
+        return False
+
 
     def _move(self, direction):
         x = self.player.x
@@ -152,8 +169,11 @@ class Sokoban:
 
 # Main program
 if __name__ == '__main__':
-    game = Sokoban()
 
-    # Game loop
     while True:
-        game.play_step()
+        game = Sokoban()
+
+        # Game loop
+        while True:
+            if game.play_step():
+                break
