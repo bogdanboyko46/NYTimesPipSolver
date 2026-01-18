@@ -1,0 +1,2 @@
+
+sokobangamepy.py was originally a copy and paste of a snake game made in pygame, found on youtube (we are learning how to use pygame for first time), generic comments left are from that not chatgpt copy and paste slop
