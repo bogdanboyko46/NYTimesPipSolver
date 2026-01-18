@@ -1,3 +1,5 @@
+import time
+
 import torch
 import random
 import numpy as np
@@ -29,7 +31,7 @@ class Agent:
 
 	    User ability to move:
 		    UP, DOWN, LEFT, RIGHT
-
+        
         Each block:
 		    Availability to user:
             UP, DOWN, LEFT, RIGHT
@@ -41,7 +43,16 @@ class Agent:
 	        UP, DOWN, LEFT, RIGHT
 
         """
-        pass
+        state = [
+            game.can_move_up(),
+            game.can_move_down(),
+            game.can_move_left(),
+            game.can_move_right()
+        ]
+        state.extend(game.block_state())
+        state.extend(game.hole_state())
+
+        print(state)
 
     def remember(self, state, action, reward, next_state, game_over):
         pass
@@ -94,4 +105,10 @@ def train():
             print(f'Game {number_of_games}, Record: {max(steps_taken)}')
 
 if __name__ == '__main__':
-    train()
+    agent = Agent()
+    game = Sokoban()
+    time.sleep(2)
+    while True:
+        agent.get_state(game)
+        if game.play_step():
+            break

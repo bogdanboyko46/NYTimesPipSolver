@@ -129,45 +129,106 @@ class Sokoban:
         x = self.player.x
         y = self.player.y
 
-        if direction == Direction.RIGHT and (x + BLOCK_SIZE) < self.w:
+        if direction == Direction.RIGHT and self.can_move_right():
+            if Point(x + BLOCK_SIZE, y) in self.blocks:
+                self.blocks.remove(Point(x + BLOCK_SIZE, y))
+                self.blocks.add(Point(x + BLOCK_SIZE * 2, y))
+            x += BLOCK_SIZE
+        elif direction == Direction.LEFT and self.can_move_left():
+            if Point(x - BLOCK_SIZE, y) in self.blocks:
+                self.blocks.remove(Point(x - BLOCK_SIZE, y))
+                self.blocks.add(Point(x - BLOCK_SIZE * 2, y))
+            x -= BLOCK_SIZE
+        elif direction == Direction.DOWN and self.can_move_down():
+            if Point(x, y + BLOCK_SIZE) in self.blocks:
+                self.blocks.remove(Point(x, y + BLOCK_SIZE))
+                self.blocks.add(Point(x, y + BLOCK_SIZE * 2))
+            y += BLOCK_SIZE
+        elif direction == Direction.UP and self.can_move_up():
+            if Point(x, y - BLOCK_SIZE) in self.blocks:
+                self.blocks.remove(Point(x, y - BLOCK_SIZE))
+                self.blocks.add(Point(x, y - BLOCK_SIZE * 2))
+            y -= BLOCK_SIZE
+
+        self.player = Point(x, y)
+
+    def can_move_right(self) -> bool:
+        x = self.player.x
+        y = self.player.y
+        if (x + BLOCK_SIZE) < self.w:
             new_x = x + BLOCK_SIZE
             if Point(new_x, y) in self.blocks:
                 # Checks if block cant be pushed (out of bounds, or another block to blocks right)
                 if new_x + BLOCK_SIZE >= self.w or Point(new_x + BLOCK_SIZE, y) in self.blocks:
-                    return
-                self.blocks.remove((new_x, y))
-                self.blocks.add(Point(new_x + BLOCK_SIZE, y))
-            x += BLOCK_SIZE
-        elif direction == Direction.LEFT and (x - BLOCK_SIZE) >= 0:
+                    return False
+            return True
+        return False
+
+    def can_move_left(self) -> bool:
+        x = self.player.x
+        y = self.player.y
+        if (x - BLOCK_SIZE) >= 0:
             new_x = x - BLOCK_SIZE
             if Point(new_x, y) in self.blocks:
                 # Checks if block cant be pushed (out of bounds, or another block to blocks left)
                 if new_x - BLOCK_SIZE < 0 or Point(new_x - BLOCK_SIZE, y) in self.blocks:
-                    return
-                self.blocks.remove((new_x, y))
-                self.blocks.add(Point(new_x - BLOCK_SIZE, y))
-            x -= BLOCK_SIZE
+                    return False
+            return True
+        return False
 
-        elif direction == Direction.DOWN and (y + BLOCK_SIZE) < self.h:
+    def can_move_down(self) -> bool:
+        x = self.player.x
+        y = self.player.y
+        if (y + BLOCK_SIZE) < self.h:
             new_y = y + BLOCK_SIZE
             if Point(x, new_y) in self.blocks:
-                # Checks if block cant be pushed (out of bounds, or another block to blocks left)
+                # Checks if block cant be pushed (out of bounds, or another block to blocks down)
                 if new_y + BLOCK_SIZE >= self.w or Point(x, new_y + BLOCK_SIZE) in self.blocks:
-                    return
-                self.blocks.remove((x, new_y))
-                self.blocks.add(Point(x, new_y + BLOCK_SIZE))
-            y += BLOCK_SIZE
-        elif direction == Direction.UP and (y - BLOCK_SIZE) >= 0:
+                    return False
+            return True
+        return False
+
+    def can_move_up(self) -> bool:
+        x = self.player.x
+        y = self.player.y
+        if (y - BLOCK_SIZE) >= 0:
             new_y = y - BLOCK_SIZE
             if Point(x, new_y) in self.blocks:
-                # Checks if block cant be pushed (out of bounds, or another block to blocks left)
+                # Checks if block cant be pushed (out of bounds, or another block to blocks up)
                 if new_y - BLOCK_SIZE < 0 or Point(x, new_y - BLOCK_SIZE) in self.blocks:
-                    return
-                self.blocks.remove((x, new_y))
-                self.blocks.add(Point(x, new_y - BLOCK_SIZE))
-            y -= BLOCK_SIZE
+                    return False
+            return True
+        return False
 
-        self.player = Point(x, y)
+    def block_state(self):
+        res = []
+        x1 = self.player.x
+        y1 = self.player.y
+        # UP, DOWN, LEFT, RIGHT
+        for block in self.blocks:
+            x2 = block.x
+            y2 = block.y
+            res.append(y1 > y2)
+            res.append(y1 < y2)
+            res.append(x1 > x2)
+            res.append(x1 < x2)
+        return res
+
+    def hole_state(self):
+        res = []
+        x1 = self.player.x
+        y1 = self.player.y
+        # UP, DOWN, LEFT, RIGHT
+        for hole in self.holes:
+            x2 = hole.x
+            y2 = hole.y
+            res.append(y1 > y2)
+            res.append(y1 < y2)
+            res.append(x1 > x2)
+            res.append(x1 < x2)
+        return res
+
+
 
 
 # Main program
