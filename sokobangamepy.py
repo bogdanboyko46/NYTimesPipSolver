@@ -58,9 +58,15 @@ class Sokoban:
             if not Point(x, y) in self.holes and not Point(x, y) in self.blocks and Point(x, y) != self.player:
                 self.holes.add(Point(x, y))
 
+    def reset(self):
 
+        # TODO: do this function
+        
+        pass
 
     def play_step(self):
+        # TODO: return respective vars: reward, game_over, game_win
+        
         # Handle user input
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
