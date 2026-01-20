@@ -148,7 +148,7 @@ class Sokoban:
         else:
             # will be reached if the break statement is reached, add a positive reward of 1 if in contact
             reward += 4
-            self.frames_without_contact = 0 # reset back to zero
+            self.frames_without_contact = 0 # reset back to zero since contact was achieved
 
         if self.frames_without_contact > 10:
             reward -= 5
