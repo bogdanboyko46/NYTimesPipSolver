@@ -3,7 +3,7 @@ import time
 import torch
 import random
 import numpy as np
-from sokobanhuman import Sokoban
+from sokobanbot import Sokoban
 from collections import deque
 from model import QTrainer, Linear_QNet
 
@@ -17,9 +17,9 @@ class Agent:
         
         self.number_of_games = 0
         self.epsilon = 0 # randomness
-        self.gamma = 0 # discount rate
+        self.gamma = 0.9 # cares about long term reward (very cool)
         self.memory = deque(maxlen=MAX_MEMORY) # popleft when memory is reached
-        self.model = Linear_QNet(11, 256, 3)
+        self.model = Linear_QNet(28, 256, 4)
         self.trainer = QTrainer(self.model, LR, self.gamma)
 
 
@@ -74,27 +74,41 @@ class Agent:
     def train_short_memory(self, state, action, reward, next_state, game_over):
         self.trainer.train_step(state, action, reward, next_state, game_over)
 
-    def get_action(self, state): 
-        # do some random moves in the beginning
-        self.epsilon = 80 - self.number_of_games
-        
-        final_move = [0,0,0,0] # UP, DOWN, LEFT, RIGHT
+    def get_action(self, state):
+        """
+        Decide which action to take given the current state.
+
+        Uses epsilon-greedy strategy:
+        - With probability epsilon: choose a random action (exploration)
+        - Otherwise: choose the action with the highest predicted Q-value (exploitation)
+        """
+
+        # Update epsilon (exploration rate)
+        # As the number of games increases, epsilon decreases
+        self.epsilon = max(0, 80 - self.number_of_games)
+
+        # Array denoting the move to be made, udlr
+        final_move = [0, 0, 0, 0]
+
+        # Decide whether to explore or exploit
         if random.randint(0, 200) < self.epsilon:
             move = random.randint(0, 3)
-            final_move[move] = 1
         else:
-            # give the agent the current state in torch.float format
+            # Convert state to a PyTorch tensor
             state0 = torch.tensor(state, dtype=torch.float)
-            prediction = self.model.predict(state0)
 
-            # prediction returns a list for ex [2.7, 3, 8, 0]
-            # "move" then gets the index of the maximum element
+            # Get Quality Values for all actions from the network
+            with torch.no_grad():  # no gradients needed when acting
+                prediction = self.model(state0)
+
+            # Choose the highest quality action
             move = torch.argmax(prediction).item()
 
-            final_move[move] = 1
-
+        # Convert action index to one-hot encoding
+        final_move[move] = 1
         return final_move
-        
+
+
 def train():
     steps_taken = [] # the # of steps the agent takes to win per game
     current_steps = 0

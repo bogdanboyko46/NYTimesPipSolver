@@ -2,6 +2,7 @@ import pygame
 import random
 from enum import Enum
 from collections import namedtuple
+import numpy as np
 
 # Initialize pygame modules
 pygame.init()
@@ -99,6 +100,11 @@ class Sokoban:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
+
+        # action is [up, down, left, right]
+        if isinstance(action, (list, tuple, np.ndarray)):
+            idx = int(np.argmax(action))
+            action = [Direction.RIGHT, Direction.LEFT, Direction.UP, Direction.DOWN][idx]
 
         # get old block in hole state to compare after move is completed
         old_in_hole_ct = self.in_hole
@@ -298,22 +304,6 @@ class Sokoban:
             res.append(y1 < y2)
             res.append(x1 > x2)
             res.append(x1 < x2)
-
-        # DANGER STATE
-        adjacent_dir = self.adjacent(x1, y1, x2, y2)
-
-        if not adjacent_dir:
-            res.append(False)
-        # CHECK HORIZONTAL DANGER MOVES
-        elif y2 in (0, self.h - BLOCK_SIZE):
-            if adjacent_dir == Direction.LEFT and x2 == BLOCK_SIZE or adjacent_dir == Direction.RIGHT and x2 == self.w - BLOCK_SIZE * 2:
-                res.append(True)
-        # CHECK VERTICAL DANGER MOVES
-        elif x2 in (0, self.w - BLOCK_SIZE):
-            if adjacent_dir == Direction.UP and y2 == BLOCK_SIZE or adjacent_dir == Direction.DOWN and y2 == self.h - BLOCK_SIZE * 2:
-                res.append(True)
-        else:
-            res.append(False)
 
         return res
 
