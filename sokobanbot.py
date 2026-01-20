@@ -79,9 +79,21 @@ class Sokoban:
                 pygame.quit()
                 quit()
 
+        cur_in_hole = self.in_hole
         # Move
         self._move(action)
-        
+
+        if self.in_hole == len(self.blocks):
+            return [10, True, False]
+        # Add check if game is impossible to win
+
+        if self.in_hole > cur_in_hole:
+            return [0.5, False, False]
+        if self.in_hole < cur_in_hole:
+            return [-0.5, False, False]
+        else:
+            return [-0.01, False, False]
+
 
         # Update display
         self._update_ui()
