@@ -1,14 +1,8 @@
-import time
-
-from fontTools.subset.svg import closure_element_ids
-
 import pygame
 import random
 from enum import Enum
 from collections import namedtuple
 import numpy as np
-import math
-from torch.cuda.tunable import set_filename
 
 # Initialize pygame modules
 pygame.init()
@@ -17,10 +11,11 @@ font = pygame.font.Font('arial.ttf', 25)
 
 # Enum for player movement directions
 class Direction(Enum):
-    UP = 1
-    DOWN = 2
-    LEFT = 3
-    RIGHT = 4
+    RIGHT = 1
+    LEFT = 2
+    UP = 3
+    DOWN = 4
+
 
 # Point structure to store x and y coordinates
 Point = namedtuple('Point', 'x, y')
@@ -38,7 +33,7 @@ PINK = (255, 0, 255)
 BLOCK_SIZE = 80
 
 class Sokoban:
-    def __init__(self, w=560, h=560):
+    def __init__(self, w=400, h=400):
         # Screen width and height
         self.w = w
         self.h = h
@@ -46,65 +41,34 @@ class Sokoban:
         self.blocks = None
         self.holes = None
         self.in_hole = 0
-        # self.comp = False
 
         # Initialize game window
         self.display = pygame.display.set_mode((self.w, self.h))
         pygame.display.set_caption('Sokoban')
 
-        self.differences = dict()
-
         self.reset()
 
-    def replace_difference(self, states):
-
-        old_block = states[0]
-        new_block = states[1]
-
-        # compare the differences from the old state of block and new state
-        # count the pos and neg change from each hole, 1, -1 denoting a closer path to a hole, farther path respectively
-        closer_count = 0
-
-        # initialize block's new state
-
-        self.differences[new_block] = dict()
-
-        for hole in self.differences[old_block].keys():
-            old_diff = self.differences[old_block][hole]
-            new_diff = math.sqrt((hole.x - new_block.x) ** 2 + (hole.y - new_block.y) ** 2) / BLOCK_SIZE
-            closer_count += 1 if new_diff < old_diff else -1
-            self.differences[new_block][hole] = new_diff
-
-        self.differences[old_block].clear()
-
-        return 5 if closer_count > 0 else -5
-
     def reset(self):
-        print("-----------------------------------------------------------------------------------------------------------------")
+        x = random.randint(0, 1) * BLOCK_SIZE
+        y = random.randint(0, 1) * BLOCK_SIZE
         self.moves_made = 0
+        self.player = Point(x, y)
+        self.in_hole = 0
         self.blocks = set()
         self.holes = set()
-        self.in_hole = 0
-        self.differences.clear()
 
-        self.player = Point(0, 0 )
-        self.holes.add(Point(BLOCK_SIZE, BLOCK_SIZE * 5))
-        self.blocks.add(Point(BLOCK_SIZE, BLOCK_SIZE * 3))
-
+        self.blocks.add(Point(BLOCK_SIZE, 2 * BLOCK_SIZE))
+        self.holes.add(Point(BLOCK_SIZE * 2, BLOCK_SIZE * 2))
 
     def unmovable_block_detect(self):
         for block in self.blocks:
-            # if the block is already in a hole
             if block in self.holes:
                 continue
-
-            # if the block is in a corner
             if block in (Point(0, 0),
                          Point(self.w - BLOCK_SIZE, 0),
                          Point(0, self.h - BLOCK_SIZE),
                          Point(self.w - BLOCK_SIZE, self.h - BLOCK_SIZE)):
                 return True
-
         return False
 
 
@@ -124,60 +88,37 @@ class Sokoban:
 
         self.moves_made += 1
 
-        reward = -1 # encourage shortest path
+        # check if game is over and collect reward values
         game_over = False
 
-        # old states
-        old_ct_in_hole = self.in_hole
+        # initialize reward to -1, (time constraint) negative reward
+        reward = -0.5
 
-        block_states = self._move(action)
-        self._update_ui()
+        # execute move from agent action
+        self._move(action)
 
+        # check if agent completed the game
+        if self.in_hole == len(self.holes):
+            reward += 50
+            game_over = True
+            return reward, game_over, True
 
-        # if block_states:
-        #    # detected that a block was moved, apply change to current difference dict
-        #    reward += self.replace_difference(block_states)
-            # can either be negative or positive depending on if block was moved towards holes
-
-
-        # if self.unmovable_block_detect():
-        #    reward -= 25
-        #    game_over = True
-        #    return reward, game_over, False
-
-        # if a block gets pushed onto a hole, give the agent a positive reward
-        if self.in_hole > old_ct_in_hole:
-            if self.in_hole == len(self.holes):
-                reward += 20
-                game_over = True
-                return reward, game_over, True
-
-            else:
-                reward += 10
-
-            self.moves_made = 0
-
-        elif self.in_hole < old_ct_in_hole:
-
-            # the agent pushed a block off a hole, return a negative reward
-            reward -= 10
-
-        # if agent pushes a block into a corner, heavily discourage
-        if self.moves_made > 1000:
-            reward -= 10
+        # check if agent moved a block into an unmovable state
+        if self.unmovable_block_detect() or self.moves_made > 50:
+            reward -= 15
             game_over = True
             return reward, game_over, False
 
+        self._update_ui()
+
         # return
-        # time.sleep(.01)
         return reward, game_over, False
 
     # Moves the player, Returns True if a block is moved too
     def _move(self, direction):
         x = self.player.x
         y = self.player.y
-        block_states = []
-
+        moved_block = False
         if direction == Direction.RIGHT and self.can_move_right():
             if Point(x + BLOCK_SIZE, y) in self.blocks:
                 old_pos =  Point(x + BLOCK_SIZE, y)
@@ -188,7 +129,7 @@ class Sokoban:
                 self.blocks.add(new_pos)
                 if new_pos in self.holes:
                     self.in_hole += 1
-                block_states = [old_pos, new_pos]
+                moved_block = True
             x += BLOCK_SIZE
 
         elif direction == Direction.LEFT and self.can_move_left():
@@ -201,7 +142,7 @@ class Sokoban:
                 self.blocks.add(new_pos)
                 if new_pos in self.holes:
                     self.in_hole += 1
-                block_states = [old_pos, new_pos]
+                moved_block = True
             x -= BLOCK_SIZE
 
         elif direction == Direction.DOWN and self.can_move_down():
@@ -214,7 +155,7 @@ class Sokoban:
                 self.blocks.add(new_pos)
                 if new_pos in self.holes:
                     self.in_hole += 1
-                block_states = [old_pos, new_pos]
+                moved_block = True
             y += BLOCK_SIZE
 
         elif direction == Direction.UP and self.can_move_up():
@@ -227,11 +168,11 @@ class Sokoban:
                 self.blocks.add(new_pos)
                 if new_pos in self.holes:
                     self.in_hole += 1
-                block_states = [old_pos, new_pos]
+                moved_block = True
             y -= BLOCK_SIZE
 
         self.player = Point(x, y)
-        return block_states
+        return moved_block
 
     def _update_ui(self):
         self.display.fill(BLACK)
@@ -307,23 +248,31 @@ class Sokoban:
             return True
         return False
 
-    def player_pos(self):
+    def player_state(self):
         return [self.player.x / BLOCK_SIZE, self.player.y / BLOCK_SIZE]
 
     def block_state(self):
         res = []
-        x1, y1 = self.player.x, self.player.y
+        x1 = self.player.x
+        y1 = self.player.y
+        # UP, DOWN, LEFT, RIGHT
+        for block in self.blocks:
+            x2 = block.x
+            y2 = block.y
+            res.append((x1 - x2) / BLOCK_SIZE)
+            res.append((y1 - y2) / BLOCK_SIZE)
 
-        for block in sorted(self.blocks, key=lambda p: (p.x, p.y)):
-            res.append((x1 - block.x) / BLOCK_SIZE)
-            res.append((y1 - block.y) / BLOCK_SIZE)
         return res
 
     def hole_state(self):
         res = []
-        x1, y1 = self.player.x, self.player.y
+        x1 = self.player.x
+        y1 = self.player.y
+        # UP, DOWN, LEFT, RIGHT
+        for hole in self.holes:
+            x2 = hole.x
+            y2 = hole.y
+            res.append((x1 - x2) / BLOCK_SIZE)
+            res.append((y1 - y2) / BLOCK_SIZE)
 
-        for hole in sorted(self.holes, key=lambda p: (p.x, p.y)):
-            res.append((x1 - hole.x) / BLOCK_SIZE)
-            res.append((y1 - hole.y) / BLOCK_SIZE)
         return res

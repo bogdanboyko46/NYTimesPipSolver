@@ -24,7 +24,7 @@ class Agent:
 
         self.gamma = 0.9 # cares about long term reward (very cool)
         self.memory = deque(maxlen=MAX_MEMORY) # popleft when memory is reached
-        self.model = Linear_QNet(8, 256, 4)
+        self.model = Linear_QNet(10, 256, 4)
         self.trainer = QTrainer(self.model, LR, self.gamma)
 
 
@@ -58,6 +58,7 @@ class Agent:
             game.can_move_right()
         ]
 
+        state.extend(game.player_state())
         state.extend(game.block_state())
         state.extend(game.hole_state())
 
@@ -117,7 +118,7 @@ def train():
     total_reward = 0
     temp_moves = 0
 
-    while agent.number_of_games < 1000:
+    while agent.number_of_games < 250:
         # get old state
         state_old = agent.get_state(game)
 

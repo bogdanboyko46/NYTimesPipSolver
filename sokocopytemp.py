@@ -123,7 +123,6 @@ class Sokoban:
         # get old position state to check if agent attempted to move a block into a wall, into another block, or attempted to move itself into a wall
         old_x, old_y = self.player.x, self.player.y
 
-
         # check if game is over and collect reward values
         game_over = False
 
