@@ -87,15 +87,20 @@ class Sokoban:
         self.savedstate = copy.deepcopy((
             self.player,
             self.blocks,
-            self.holes,
-            self.paths
+            self.holes
         ))
 
     def reload(self):
         self.moves_made = 0
-        self.player, self.blocks, self.holes, self.paths = copy.deepcopy(self.savedstate)
+        self.player, self.blocks, self.holes= copy.deepcopy(self.savedstate)
         self.in_hole = sum(1 for b in self.blocks if b in self.holes)
         self._update_ui()
+
+        self.paths = {}
+        for block in self.blocks:
+            self.paths[block] = {}
+            for hole in self.holes:
+                self.paths[block][hole] = (abs(block.x - hole.x) / BLOCK_SIZE) + (abs(block.y - hole.y) / BLOCK_SIZE)
 
         self.in_hole = 0
         self._update_ui()
