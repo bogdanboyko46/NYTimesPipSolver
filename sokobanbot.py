@@ -45,6 +45,7 @@ class Sokoban:
         self.holes = None
         self.in_hole = 0
         self.paths = None
+        self.block_hole_pairs = None
 
         # Initialize game window
         self.display = pygame.display.set_mode((self.w, self.h))
@@ -61,6 +62,7 @@ class Sokoban:
         self.blocks = set()
         self.holes = set()
         self.paths = dict()
+        self.block_hole_pairs = set()
 
         while len(self.blocks) < 1:
             x = random.randint(0, 7) * BLOCK_SIZE
@@ -86,19 +88,26 @@ class Sokoban:
 
         # TODO: the paths dict is not suitable for multiple blocks and holes -> fix it
 
-        # incremented / decremented based off if a block got closer or farther from each block
-        closer_count = 0
+        if new_pos in self.blocks:
+            return 0 # a large positive reward will be given after this function is called
+
         self.paths[new_pos] = dict()
-        changed_flg = False # temp var
+        tot_reward = 0
 
         for hole in self.holes:
+
             old_dist = self.paths[old_pos][hole]
             new_dist = (abs(new_pos.x - hole.x) / BLOCK_SIZE) + (abs(new_pos.y - hole.y) / BLOCK_SIZE)
-            closer_count += 1 if old_dist > new_dist else -1
 
-            # temp check
-            if new_dist != old_dist:
-                changed_flg = True
+            # the reward will amplify as the block gets closer to some hole
+            reward_magnitude = 7 / new_dist  # the more the dist, the less the reward
+            tot_reward = reward_magnitude if new_dist < old_dist else -1 * reward_magnitude
+
+            """
+            We are looking to achieve a virtual radius 
+            around each holes that increases the reward as the block gets closer to it
+            The min, max rewards that can be achieved are 7 / (dist_from_hole=7), 7 / (dist_from_hole=1), respectively
+            """
 
             # add path
             self.paths[new_pos][hole] = new_dist
@@ -106,11 +115,12 @@ class Sokoban:
         # delete old path
         del self.paths[old_pos]
 
-        if closer_count == 0:
-            return 15 if changed_flg else 0
+        return tot_reward
 
-        return 10 if closer_count >= 0 else -1
-
+    def update_paths(self):
+        # create a dynamic guidance system returning amplified rewards for blocks that are pushed closer to a hole
+        # restructure how changed block positions are recorded
+        return 0
 
     def immovable_block_detect(self):
         # create a dict denoting the number of blocks / holes in each border
@@ -189,14 +199,12 @@ class Sokoban:
         old_in_hole = self.in_hole
 
         # execute move from agent action
-        old_pos, new_pos = self._move(action)
+        self._move(action)
 
+        # update paths dict, while either gaining or losing reward
+        reward += self.update_paths(self)
         if old_x == self.player.x and old_y == self.player.y:
             reward -= 5
-
-        elif old_pos and new_pos:
-            # update reward based off if the agent pushed a block closer to any of the holes
-            reward += self.replace_path(old_pos, new_pos)
 
         # check if agent completed the game
         if self.in_hole == len(self.holes):
@@ -230,56 +238,50 @@ class Sokoban:
         if direction == Direction.RIGHT and self.can_move_right():
             if Point(x + BLOCK_SIZE, y) in self.blocks:
                 old_pos =  Point(x + BLOCK_SIZE, y)
-                self.blocks.remove(old_pos)
                 if old_pos in self.holes:
                     self.in_hole -= 1
                 new_pos = Point(x + BLOCK_SIZE * 2, y)
-                self.blocks.add(new_pos)
                 if new_pos in self.holes:
                     self.in_hole += 1
-                moved_block = True
+
             x += BLOCK_SIZE
 
         elif direction == Direction.LEFT and self.can_move_left():
             if Point(x - BLOCK_SIZE, y) in self.blocks:
                 old_pos = Point(x - BLOCK_SIZE, y)
-                self.blocks.remove(old_pos)
                 if old_pos in self.holes:
                     self.in_hole -= 1
                 new_pos = Point(x - BLOCK_SIZE * 2, y)
-                self.blocks.add(new_pos)
                 if new_pos in self.holes:
                     self.in_hole += 1
-                moved_block = True
             x -= BLOCK_SIZE
 
         elif direction == Direction.DOWN and self.can_move_down():
             if Point(x, y + BLOCK_SIZE) in self.blocks:
                 old_pos = Point(x, y + BLOCK_SIZE)
-                self.blocks.remove(old_pos)
                 if old_pos in self.holes:
                     self.in_hole -= 1
                 new_pos = Point(x, y + BLOCK_SIZE * 2)
-                self.blocks.add(new_pos)
                 if new_pos in self.holes:
                     self.in_hole += 1
-                moved_block = True
             y += BLOCK_SIZE
 
         elif direction == Direction.UP and self.can_move_up():
             if Point(x, y - BLOCK_SIZE) in self.blocks:
                 old_pos = Point(x, y - BLOCK_SIZE)
-                self.blocks.remove(old_pos)
                 if old_pos in self.holes:
                     self.in_hole -= 1
                 new_pos = Point(x, y - BLOCK_SIZE * 2)
-                self.blocks.add(new_pos)
                 if new_pos in self.holes:
                     self.in_hole += 1
             y -= BLOCK_SIZE
 
+        # update pos in blocks
+        if old_pos and new_pos:
+            self.blocks.remove(old_pos)
+            self.holes.add(new_pos)
+
         self.player = Point(x, y)
-        return old_pos, new_pos
 
     def _update_ui(self):
         self.display.fill(BLACK)
