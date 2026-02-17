@@ -4,3 +4,7 @@ sokobangamepy.py was originally a copy and paste of a snake game made in pygame,
 RECENT COMMIT TOT REWARD VS GAME NUMBER: (result of adding more negative rewards to avoid redundant moves) - NEW IMPLEMENTATION
 <img width="638" height="476" alt="image" src="https://github.com/user-attachments/assets/677e4c28-36bb-44f2-91c2-a3a8a8d6a154" />
 
+VS
+
+<img width="555" height="435" alt="image" src="https://github.com/user-attachments/assets/a1eab64f-e283-4d54-8c4e-67160045db0b" />
+
