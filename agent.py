@@ -19,18 +19,16 @@ LR = 0.001  # learning rate
 games_to_train = 10_000
 avg_track = 75
 
-
 class Agent:
 
-    def __init__(self):
+    def __init__(self, width = 9, height = 9, blocks = 1, render = True, debug_mode = False):
 
         self.games_completed = 0
         self.games_played = 0
-
         self.epsilon = 1.0  # randomness
         self.epsilon_min = 0.05
         self.epsilon_decay = 0.999995
-        temp_game = Sokoban()
+        temp_game = Sokoban(width, height, blocks, render, debug_mode)
         # Size to be passed into model
         input_size = temp_game.num_objects * 4 + 6
         self.gamma = 0.9  # cares about long term reward (very cool)
@@ -127,14 +125,14 @@ class Agent:
         return final_move
 
 
-def train():
+def train(w = 9, h = 9, num_objects = 1, render = True, debug_mode = False):
     rewards = []
     record = 10_000_000
-    agent = Agent()
+    agent = Agent(w, h, num_objects, render, debug_mode)
 
     plt.ion()
 
-    game = Sokoban()
+    game = Sokoban(w, h, num_objects, render, debug_mode)
     total_reward = 0
     cur_moves = 0
 
@@ -171,7 +169,7 @@ def train():
         cur_moves += 1
 
         if game_over:
-            agent.games_completed += 1
+            agent.games_played += 1
             if game_win:
                 # allow the bot to learn more
 
@@ -207,7 +205,7 @@ def train():
             cur_moves = 0
 
             # Display Graph
-            if agent.games_completed % 100 == 0:
+            if agent.games_completed % 10 == 1 and agent.games_completed > 0:
                 plt.clf()  # clear previous plot
                 game_number = list(range(len(avg_moves)))
                 plt.plot(game_number, avg_moves)
@@ -215,7 +213,7 @@ def train():
                 plt.ylabel(f'Average moves last {avg_track} games')
                 plt.pause(0.1)  # updates the plot without blocking
 
-            if agent.games_completed % 1000 == 0:
+            if agent.games_played % 1000 == 0:
                 print(f'Games: {agent.games_completed}, Record: {record}')
 
 

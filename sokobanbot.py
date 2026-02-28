@@ -39,13 +39,20 @@ BLOCK_SIZE = 80
 
 
 class Sokoban:
-    def __init__(self, w=720, h=720):
-        self.render = False
-        self.debug_mode = False
+    def __init__(self, w = 9, h = 9, num_objects=1, render = True, debug_mode = False):
+        self.render = render
+        self.debug_mode = debug_mode
+
+        self.grid_width = w
+        self.grid_height = h
 
         # Screen width and height
-        self.w = w
-        self.h = h
+        self.w = w * BLOCK_SIZE
+        self.h = h * BLOCK_SIZE
+
+        # Blocks
+        self.num_objects = num_objects
+
         # Player
         self.player = None
         self.blocks = None
@@ -54,8 +61,7 @@ class Sokoban:
         self.paths = None
         self.tot_block_ct = 0
         self.block_hole_pairs = None
-        self.num_objects = 2
-        # self.moves_made = 0
+        self.moves_made = 0
 
         # Initialize game window
         if self.render:
@@ -68,8 +74,8 @@ class Sokoban:
         return point in self.block_hole_pairs
 
     def reset(self):
-        x_p = random.randint(0, 8) * BLOCK_SIZE
-        y_p = random.randint(0, 8) * BLOCK_SIZE
+        x_p = random.randint(0, self.grid_width) * BLOCK_SIZE
+        y_p = random.randint(0, self.grid_height) * BLOCK_SIZE
         self.moves_made = 0
         self.block_hole_pairs = set()
         self.player = Point(x_p, y_p)
@@ -79,8 +85,8 @@ class Sokoban:
         self.paths = dict()
 
         while len(self.blocks) < self.num_objects:
-            x = random.randint(0, 7) * BLOCK_SIZE
-            y = random.randint(0, 7) * BLOCK_SIZE
+            x = random.randint(1, self.grid_width-1) * BLOCK_SIZE
+            y = random.randint(1, self.grid_height-1) * BLOCK_SIZE
 
             if Point(x, y) != self.player:
                 self.blocks.add(Point(x, y))
@@ -88,8 +94,8 @@ class Sokoban:
         self.tot_block_ct = len(self.blocks)
 
         while len(self.holes) < self.num_objects:
-            x = random.randint(0, 8) * BLOCK_SIZE
-            y = random.randint(0, 8) * BLOCK_SIZE
+            x = random.randint(0, self.grid_width) * BLOCK_SIZE
+            y = random.randint(0, self.grid_height) * BLOCK_SIZE
 
             if Point(x, y) != self.player and Point(x, y) not in self.blocks:
                 self.holes.add(Point(x, y))
@@ -250,11 +256,11 @@ class Sokoban:
         # TODO: return respective vars: reward, game_over, game_win
 
         # Handle user input
-        # if self.render:
-        #     for event in pygame.event.get():
-        #         if event.type == pygame.QUIT:
-        #             pygame.quit()
-        #             quit()
+        if self.render:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    quit()
 
         # action is [up, down, left, right]
         if isinstance(action, (list, tuple, np.ndarray)):
@@ -289,7 +295,7 @@ class Sokoban:
             return reward, game_over, True
 
         # check if agent moved a block into an immovable state
-        if self.immovable_block_detect() or self.moves_made > 1600:
+        if self.immovable_block_detect() or self.moves_made > 500:
             reward -= 5
             game_over = True
             return reward, game_over, False
