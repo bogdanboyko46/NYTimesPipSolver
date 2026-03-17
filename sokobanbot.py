@@ -59,9 +59,9 @@ class Sokoban:
         self.holes = None
         self.in_hole = 0
         self.paths = None
-        self.tot_block_ct = 0
         self.block_hole_pairs = None
         self.moves_made = 0
+        self.total_reward = 0
 
         # Initialize game window
         if self.render:
@@ -91,11 +91,10 @@ class Sokoban:
             if Point(x, y) != self.player:
                 self.blocks.add(Point(x, y))
 
-        self.tot_block_ct = len(self.blocks)
 
         while len(self.holes) < self.num_objects:
-            x = random.randint(0, self.grid_width-1) * BLOCK_SIZE
-            y = random.randint(0, self.grid_height-1) * BLOCK_SIZE
+            x = random.randint(1, self.grid_width-2) * BLOCK_SIZE
+            y = random.randint(1, self.grid_height-2) * BLOCK_SIZE
 
             if Point(x, y) != self.player and Point(x, y) not in self.blocks:
                 self.holes.add(Point(x, y))
@@ -106,6 +105,7 @@ class Sokoban:
             for hole in self.holes:
                 self.paths[block][hole] = abs(block.x - hole.x) / BLOCK_SIZE + abs(block.y - hole.y) / BLOCK_SIZE
 
+    # Not currently used
     def update_paths(self, old_pos, new_pos, old_in_hole):
 
         """
@@ -200,7 +200,7 @@ class Sokoban:
         # delete the old block's positions
         del self.paths[old_pos]
 
-        return self.tot_block_ct * 3 / closest_dist_reached if closest_dist_reached else longest_dist_reached / self.tot_block_ct
+        return self.num_objects * 3 / closest_dist_reached if closest_dist_reached else longest_dist_reached / self.num_objects
 
     def immovable_block_detect(self):
         # create a dict denoting the number of blocks / holes in each border
@@ -282,28 +282,30 @@ class Sokoban:
         old_pushed_block_pos, new_pushed_block_pos = self._move(action)
 
 
-        if old_pushed_block_pos and new_pushed_block_pos:
-            reward += self.update_paths(old_pushed_block_pos, new_pushed_block_pos, old_block_hole_pairs)
+        # if old_pushed_block_pos and new_pushed_block_pos:
+        #     reward += self.update_paths(old_pushed_block_pos, new_pushed_block_pos, old_block_hole_pairs)
+        #
 
-        elif old_x == self.player.x and old_y == self.player.y:
-            reward -= 5
 
         # check if agent completed the game
         if self.in_hole == len(self.holes):
             reward += 200
+            self.total_reward += reward
             game_over = True
             print("Games complete")
             return reward, game_over, True
 
         # check if agent moved a block into an immovable state
-        if self.immovable_block_detect() or self.moves_made > 500:
-            reward -= 5
+        if self.immovable_block_detect():
+            reward -= 15
+            self.total_reward += reward
             game_over = True
             return reward, game_over, False
 
         if self.render:
             self._update_ui()
 
+        self.total_reward += reward
         # return
         return reward, game_over, False
 
@@ -449,6 +451,11 @@ class Sokoban:
             # Gets the position of block from player
             x2 = block.x
             y2 = block.y
+            if block in self.holes:
+                res.append(True)
+            else:
+                res.append(False)
+
             res.append((x1 - x2) / BLOCK_SIZE)
             res.append((y1 - y2) / BLOCK_SIZE)
 

@@ -30,7 +30,7 @@ class Agent:
         self.epsilon_decay = 0.999995
         temp_game = Sokoban(width, height, blocks, render, debug_mode)
         # Size to be passed into model
-        input_size = temp_game.num_objects * 4 + 6
+        input_size = temp_game.num_objects * 5 + 6
         self.gamma = 0.9  # cares about long term reward (very cool)
         self.memory = deque(maxlen=MAX_MEMORY)  # popleft when memory is reached
         # Uses CUDA for training (if having eligible gpu)

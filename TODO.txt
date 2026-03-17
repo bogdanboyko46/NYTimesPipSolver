@@ -1,0 +1,6 @@
+For every instance of a game (sokobanbot.py)
+-Create 4 variables (holes_on_: top, bottom, left, right)
+These variables will keep track how many holes appear on these sides.
+If blocks_on_{pos} > holes_on_{pos} puzzle is unsolvable
+
+If 2 blocks on a side are touching then it is unmoveable
